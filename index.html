@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MustWinBig</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #0b0b0c;
+      color: white;
+      text-align: center;
+    }
+    header {
+      background: #1e1e2f;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 3rem;
+      color: #facc15;
+    }
+    p {
+      font-size: 1.2rem;
+    }
+    .btn {
+      background-color: #22c55e;
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      color: white;
+      cursor: pointer;
+      border-radius: 0.5rem;
+      margin: 1rem;
+    }
+    .btn:hover {
+      background-color: #16a34a;
+    }
+    .game-section {
+      padding: 2rem;
+    }
+    select, input[type="number"] {
+      font-size: 1rem;
+      padding: 0.5rem;
+      margin: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MustWinBig</h1>
+    <p>Flip the coin. Bet ETH. Win big. All on-chain.</p>
+    <button class="btn" onclick="connectWallet()">Connect Wallet</button>
+  </header>
+
+  <div class="game-section">
+    <h2>Coin Flip Game</h2>
+    <p>Select your side and enter your ETH bet.</p>
+    <select id="choice">
+      <option value="heads">Heads</option>
+      <option value="tails">Tails</option>
+    </select>
+    <input type="number" id="amount" placeholder="ETH amount" min="0.01" step="0.01" />
+    <button class="btn" onclick="flipCoin()">Flip Coin</button>
+    <p id="status"></p>
+  </div>
+
+  <script>
+    let userAccount = null;
+    const contractAddress = "0x7EF2e0048f5bAeDe046f6BF797943daF4ED8CB47";
+    const contractABI = [
+      {
+        "inputs": [
+          { "internalType": "string", "name": "choice", "type": "string" }
+        ],
+        "name": "play",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+      }
+    ];
+
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          userAccount = accounts[0];
+          alert('Wallet connected: ' + userAccount);
+        } catch (err) {
+          alert('Wallet connection failed.');
+        }
+      } else {
+        alert('Install MetaMask to use this app.');
+      }
+    }
+
+    async function flipCoin() {
+      const choice = document.getElementById('choice').value;
+      const amount = document.getElementById('amount').value;
+      const status = document.getElementById('status');
+
+      if (!userAccount) {
+        alert('Please connect your wallet first.');
+        return;
+      }
+
+      if (!amount || amount <= 0) {
+        alert('Enter a valid ETH amount.');
+        return;
+      }
+
+      status.innerText = 'Sending bet to MustWinBig...';
+
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+        const tx = await contract.play(choice, {
+          value: ethers.utils.parseEther(amount)
+        });
+
+        await tx.wait();
+        status.innerText = 'Transaction complete! Check your wallet for results.';
+      } catch (error) {
+        console.error(error);
+        status.innerText = 'Transaction failed or cancelled.';
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+</body>
+</html>
